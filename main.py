@@ -4,29 +4,56 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+import pandas as pd
 
 sp = spacy.load('en_core_web_sm')
 
+
 def main():
-    text_example = "Natural language processing (NLP) is a field " + \
-           "of computer science, artificial intelligence " + \
-           "and computational linguistics concerned with " + \
-           "the interactions between computers and human " + \
-           "(natural) languages, and, in particular, " + \
-           "concerned with programming computers to " + \
-           "fruitfully process large natural language " + \
-           "corpora. Challenges in natural language " + \
-           "processing frequently involve natural " + \
-           "language understanding, natural language" + \
-           "generation frequently from formal, machine" + \
-           "-readable logical forms), connecting language " + \
-           "and machine perception, managing human-" + \
-           "computer dialog systems, or some combination " + \
-           "thereof."
+    text_example_1 = "Natural language processing (NLP) is a field " + \
+                   "of computer science, artificial intelligence " + \
+                   "and computational linguistics concerned with " + \
+                   "the interactions between computers and human " + \
+                   "(natural) languages, and, in particular, " + \
+                   "concerned with programming computers to " + \
+                   "fruitfully process large natural language " + \
+                   "corpora. Challenges in natural language " + \
+                   "processing frequently involve natural " + \
+                   "language understanding, natural language" + \
+                   "generation frequently from formal, machine" + \
+                   "-readable logical forms), connecting language " + \
+                   "and machine perception, managing human-" + \
+                   "computer dialog systems, or some combination " + \
+                   "thereof."
+
+    text_example_2 = "Natural language processing (NLP) is a subfield of linguistics, computer science, information " \
+                     "engineering, and artificial intelligence concerned with the interactions between computers and " \
+                     "human (natural) languages, in particular how to program computers to process and analyze large " \
+                     "amounts of natural language data." + \
+                     "Challenges in natural language processing frequently involve speech recognition, " \
+                     "natural language understanding, " \
+                     "and natural language generation. "
 
     # text = read_file(chapter)
-    tokens = tokenize(text_example)
-    print(tokens)
+    tokens_1 = tokenize(text_example_1)
+    tokens_2 = tokenize(text_example_2)
+    print(tokens_1)
+    print(tokens_2)
+
+    text_1 = tokens_to_text(tokens_1)
+    text_2 = tokens_to_text(tokens_2)
+    print(text_1)
+    print(text_2)
+
+    texts = [text_1, text_2]
+    print(texts)
+
+    print(tf_idf(texts))
+
+
+def tokens_to_text(tokens):
+    return ' '.join([' '.join([str(t) for t in elem]) for elem in tokens])
 
 
 def tokenize(text, language='english'):
@@ -52,6 +79,14 @@ def tokenize(text, language='english'):
         filtered_words = [w for w in tokens if w not in stop_words]
         result_tokens.append(filtered_words)
     return result_tokens
+
+
+def tf_idf(docs):
+    vectorizer = TfidfVectorizer()
+    vectors = vectorizer.fit_transform(docs)
+    feature_names = vectorizer.get_feature_names()
+    dense = vectors.todense()
+    return pd.DataFrame(dense.tolist(), columns=feature_names)
 
 
 def lemmatize_spacy(sentence):
