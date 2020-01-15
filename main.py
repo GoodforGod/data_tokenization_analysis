@@ -1,31 +1,35 @@
 import string
-import spacy
-from nltk.tokenize import sent_tokenize, word_tokenize
-from nltk.corpus import stopwords
-from nltk.stem.porter import PorterStemmer
-from nltk.stem import WordNetLemmatizer
-from sklearn.feature_extraction.text import TfidfVectorizer
+
 import pandas as pd
+import spacy
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import sent_tokenize, word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 sp = spacy.load('en_core_web_sm')
 
 
 def main():
+    tokens_example()
+
+
+def tokens_example():
     text_example_1 = "Natural language processing (NLP) is a field " + \
-                   "of computer science, artificial intelligence " + \
-                   "and computational linguistics concerned with " + \
-                   "the interactions between computers and human " + \
-                   "(natural) languages, and, in particular, " + \
-                   "concerned with programming computers to " + \
-                   "fruitfully process large natural language " + \
-                   "corpora. Challenges in natural language " + \
-                   "processing frequently involve natural " + \
-                   "language understanding, natural language" + \
-                   "generation frequently from formal, machine" + \
-                   "-readable logical forms), connecting language " + \
-                   "and machine perception, managing human-" + \
-                   "computer dialog systems, or some combination " + \
-                   "thereof."
+                     "of computer science, artificial intelligence " + \
+                     "and computational linguistics concerned with " + \
+                     "the interactions between computers and human " + \
+                     "(natural) languages, and, in particular, " + \
+                     "concerned with programming computers to " + \
+                     "fruitfully process large natural language " + \
+                     "corpora. Challenges in natural language " + \
+                     "processing frequently involve natural " + \
+                     "language understanding, natural language" + \
+                     "generation frequently from formal, machine" + \
+                     "-readable logical forms), connecting language " + \
+                     "and machine perception, managing human-" + \
+                     "computer dialog systems, or some combination " + \
+                     "thereof."
 
     text_example_2 = "Natural language processing (NLP) is a subfield of linguistics, computer science, information " \
                      "engineering, and artificial intelligence concerned with the interactions between computers and " \
@@ -47,8 +51,6 @@ def main():
     print(text_2)
 
     texts = [text_1, text_2]
-    print(texts)
-
     print(tf_idf(texts))
 
 
