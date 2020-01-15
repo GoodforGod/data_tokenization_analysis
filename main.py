@@ -1,5 +1,7 @@
+import math
 import string
 
+import numpy as np
 import pandas as pd
 import spacy
 from nltk.corpus import stopwords
@@ -52,6 +54,50 @@ def tokens_example():
 
     texts = [text_1, text_2]
     print(tf_idf(texts))
+
+    hal_example = "the basic concept of the word association"
+
+    hal = compute_hal(hal_example, 5)
+    print(hal)
+
+
+# noinspection PyUnresolvedReferences
+def compute_hal(text, windows_size=2):
+    tokens_data = text.split()
+    tokens_data_size=len(tokens_data)
+
+    tokens_unique = []
+    for t in tokens_data:
+        if t not in tokens_unique:
+            tokens_unique.append(t)
+
+    tokens_unique_size = len(tokens_unique)
+
+    tokens_map = dict()
+    for i in range(tokens_unique_size):
+        token = tokens_unique[i]
+        tokens_map[token] = i
+
+    hal = pd.DataFrame(data=np.zeros((tokens_unique_size, tokens_unique_size)), index=tokens_unique, columns=tokens_unique)
+    for i in range(tokens_data_size):
+        for w in range(-windows_size - 1, windows_size + 1):
+            if w != 0:
+                token_index = i + w
+                if 0 <= token_index < tokens_data_size:
+                    score = abs(windows_size - abs(w) + 1)
+
+                    target_token = tokens_data[i]
+                    target_index = tokens_map[target_token]
+
+                    window_token = tokens_data[token_index]
+                    window_index = tokens_map[window_token]
+
+                    if w > 0:
+                        hal.iloc[window_index][target_index] += score
+                    else:
+                        hal.iloc[target_index][window_index] += score
+
+    return hal
 
 
 def tokens_to_text(tokens):
