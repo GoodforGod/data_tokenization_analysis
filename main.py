@@ -41,30 +41,28 @@ def tokens_example():
                      "natural language understanding, " \
                      "and natural language generation. "
 
+    hal_example = "the basic concept of the word association"
+
     # text = read_file(chapter)
     tokens_1 = tokenize(text_example_1)
     tokens_2 = tokenize(text_example_2)
-    print(tokens_1)
-    print(tokens_2)
 
     text_1 = tokens_to_text(tokens_1)
     text_2 = tokens_to_text(tokens_2)
-    print(text_1)
-    print(text_2)
 
     texts = [text_1, text_2]
     print(tf_idf(texts))
 
-    hal_example = "the basic concept of the word association"
-
-    hal = compute_hal(hal_example, 5)
+    hal = compute_hal(text_1, 5)
     print(hal)
+
+    top_tokens(text_1)
 
 
 # noinspection PyUnresolvedReferences
 def compute_hal(text, windows_size=2):
     tokens_data = text.split()
-    tokens_data_size=len(tokens_data)
+    tokens_data_size = len(tokens_data)
 
     tokens_unique = []
     for t in tokens_data:
@@ -78,26 +76,43 @@ def compute_hal(text, windows_size=2):
         token = tokens_unique[i]
         tokens_map[token] = i
 
-    hal = pd.DataFrame(data=np.zeros((tokens_unique_size, tokens_unique_size)), index=tokens_unique, columns=tokens_unique)
+    hal = pd.DataFrame(data=np.zeros((tokens_unique_size, tokens_unique_size)), index=tokens_unique,
+                       columns=tokens_unique)
     for i in range(tokens_data_size):
-        for w in range(-windows_size - 1, windows_size + 1):
+        target_token = tokens_data[i]
+        target_index = tokens_map[target_token]
+        for w in range(windows_size + 1):
             if w != 0:
                 token_index = i + w
                 if 0 <= token_index < tokens_data_size:
                     score = abs(windows_size - abs(w) + 1)
-
-                    target_token = tokens_data[i]
-                    target_index = tokens_map[target_token]
 
                     window_token = tokens_data[token_index]
                     window_index = tokens_map[window_token]
 
                     if w > 0:
                         hal.iloc[window_index][target_index] += score
-                    else:
-                        hal.iloc[target_index][window_index] += score
+                    # else:
+                    #     hal.iloc[target_index][window_index] += score
 
     return hal
+
+
+def top_tokens(text, limit=20):
+    tokens_data = text.split()
+
+    tokens_map = dict()
+    for i in range(len(tokens_data)):
+        token = tokens_data[i]
+        counter = tokens_map.get(token)
+        if counter is None:
+            tokens_map[token] = 1
+        else:
+            tokens_map[token] = counter + 1
+
+    tokens_sorted = {k: v for k, v in sorted(tokens_map.items(), key=lambda item: item[1], reverse=True)[:limit]}
+    print(tokens_sorted)
+    return tokens_sorted
 
 
 def tokens_to_text(tokens):
