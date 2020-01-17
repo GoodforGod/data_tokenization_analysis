@@ -53,7 +53,7 @@ def tokens_example():
     tfidf = tf_idf(texts)
     # print(tfidf)
 
-    hal = compute_hal(text_1, 5)
+    hal = compute_hal(text_1, windows_size=5)
     # print(hal)
 
     top_tokens(text_1)
@@ -72,13 +72,24 @@ def compute_chapters():
         text = tokens_to_text(tokens)
         print("Tokens for {} file converted as TEXT".format(chapter))
 
-        hal = compute_hal(text, 5)
+        hal = compute_hal(text, windows_size=5)
         print("HAL matrix computed for {} text file".format(chapter))
 
         hal_file = "hal_" + chapter.replace(".txt", ".csv")
         print("Writing HAL matrix to {} file...".format(hal_file))
         hal.to_csv(hal_file, index=None, header=True)
         print("Successfully exported HAL matrix")
+
+        top_tokens_take = 20
+        top = list(top_tokens(text, top_tokens_take))
+
+        hal = compute_hal(text, tokens=top, windows_size=5)
+        print("HAL matrix computed for top {} tokens for {}".format(top_tokens_take, chapter))
+
+        hal_file = "hal_20" + chapter.replace(".txt", ".csv")
+        print("Writing HAL matrix for top {} tokens to {} file...".format(top_tokens_take, hal_file))
+        hal.to_csv(hal_file, index=None, header=True)
+        print("Successfully exported HAL top {} matrix!\n".format(top_tokens_take))
 
         texts.append(text)
 
@@ -98,15 +109,18 @@ def write_to_file(filename, data):
 
 
 # noinspection PyUnresolvedReferences
-def compute_hal(text, windows_size=2):
+def compute_hal(text, tokens=None, windows_size=2):
     tokens_data = text.split()
+
     tokens_data_size = len(tokens_data)
     print("Computing HAL matrix for {} tokens".format(tokens_data_size))
 
-    tokens_unique = []
-    for t in tokens_data:
-        if t not in tokens_unique:
-            tokens_unique.append(t)
+    tokens_unique = tokens
+    if tokens_unique is None or len(tokens_unique) == 0:
+        tokens_unique = []
+        for t in tokens_data:
+            if t not in tokens_unique:
+                tokens_unique.append(t)
 
     tokens_unique_size = len(tokens_unique)
 
@@ -119,20 +133,21 @@ def compute_hal(text, windows_size=2):
                        columns=tokens_unique)
     for i in range(tokens_data_size):
         target_token = tokens_data[i]
-        target_index = tokens_map[target_token]
-        for w in range(windows_size + 1):
-            if w != 0:
-                token_index = i + w
-                if 0 <= token_index < tokens_data_size:
-                    score = abs(windows_size - abs(w) + 1)
+        target_index = tokens_map.get(target_token)
+        if target_index is not None:
+            for w in range(windows_size + 1):
+                if w != 0:
+                    token_index = i + w
+                    if 0 <= token_index < tokens_data_size:
+                        score = abs(windows_size - abs(w) + 1)
 
-                    window_token = tokens_data[token_index]
-                    window_index = tokens_map[window_token]
-
-                    if w > 0:
-                        hal.iloc[window_index][target_index] += score
-                    # else:
-                    #     hal.iloc[target_index][window_index] += score
+                        window_token = tokens_data[token_index]
+                        window_index = tokens_map.get(window_token)
+                        if window_index is not None:
+                            if w > 0:
+                                hal.iloc[window_index][target_index] += score
+                            # else:
+                            #     hal.iloc[target_index][window_index] += score
 
     print("Computed HAL matrix {}x{} for {} tokens".format(tokens_unique_size, tokens_unique_size, tokens_data_size))
     return hal
@@ -167,7 +182,7 @@ def tokenize(text, language='english'):
     print("Tokenizing and lemmatizing {} sentences from given text".format(len(sentences)))
 
     for sentence in sentences:
-        # lemmatize of words by NLTK
+        # lemmatize of words
         tokens = lemmatize_spacy(sentence)
 
         # split into words
@@ -182,6 +197,8 @@ def tokenize(text, language='english'):
 
         # filter out stop words
         stop_words = set(stopwords.words(language))
+        stop_words.add("pron")
+
         filtered_words = [w for w in tokens if w not in stop_words]
         result_tokens.append(filtered_words)
 
@@ -194,6 +211,22 @@ def tf_idf(docs):
     vectorizer = TfidfVectorizer()
     vectors = vectorizer.fit_transform(docs)
     feature_names = vectorizer.get_feature_names()
+
+    # sum tfidf frequency of each term through documents
+    sums = vectors.sum(axis=0)
+
+    # connecting term to its sums frequency
+    data = []
+    for col, term in enumerate(feature_names):
+        data.append((term, sums[0, col]))
+
+    ranking = pd.DataFrame(data, columns=['term', 'rank'])
+    ranking.sort_values('rank', ascending=False)
+    score_sorted_file = "tf_idf_sorted_score.csv"
+
+    print("Writing TF-IDF sorted score to {} file...".format(score_sorted_file))
+    ranking.to_csv(score_sorted_file, index=None, header=True)
+
     dense = vectors.todense()
     df = pd.DataFrame(dense.tolist(), columns=feature_names)
     print("Successfully computed TF-IDF vectors")
@@ -225,7 +258,7 @@ def read_file(chapter):
 
 def get_chapters():
     chapters = list()
-    for i in range(1, 8):
+    for i in range(1, 9):
         chapters.append("chapter_%d.txt" % i)
 
     return chapters
