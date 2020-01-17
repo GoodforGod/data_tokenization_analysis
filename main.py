@@ -1,4 +1,3 @@
-import math
 import string
 
 import numpy as np
@@ -13,7 +12,7 @@ sp = spacy.load('en_core_web_sm')
 
 
 def main():
-    tokens_example()
+    compute_chapters()
 
 
 def tokens_example():
@@ -51,18 +50,58 @@ def tokens_example():
     text_2 = tokens_to_text(tokens_2)
 
     texts = [text_1, text_2]
-    print(tf_idf(texts))
+    tfidf = tf_idf(texts)
+    # print(tfidf)
 
     hal = compute_hal(text_1, 5)
-    print(hal)
+    # print(hal)
 
     top_tokens(text_1)
+
+
+def compute_chapters():
+    chapters = get_chapters()
+    texts = list()
+    for chapter in chapters:
+        raw_text = read_file(chapter)
+        print("Raw text for {} file READ".format(chapter))
+
+        tokens = tokenize(raw_text)
+        print("Raw text for {} file TOKENIZED".format(chapter))
+
+        text = tokens_to_text(tokens)
+        print("Tokens for {} file converted as TEXT".format(chapter))
+
+        hal = compute_hal(text, 5)
+        print("HAL matrix computed for {} text file".format(chapter))
+
+        hal_file = "hal_" + chapter.replace(".txt", ".csv")
+        print("Writing HAL matrix to {} file...".format(hal_file))
+        hal.to_csv(hal_file, index=None, header=True)
+        print("Successfully exported HAL matrix")
+
+        texts.append(text)
+
+    tfidf = tf_idf(texts)
+
+    score_file = "tf_idf_chapters.csv"
+
+    print("Writing TF-IDF score to {} file...".format(score_file))
+    tfidf.to_csv(score_file, index=None, header=True)
+    print("Successfully exported TF-IDF score")
+
+
+def write_to_file(filename, data):
+    file = open(filename, "w+")
+    file.write(data)
+    file.close()
 
 
 # noinspection PyUnresolvedReferences
 def compute_hal(text, windows_size=2):
     tokens_data = text.split()
     tokens_data_size = len(tokens_data)
+    print("Computing HAL matrix for {} tokens".format(tokens_data_size))
 
     tokens_unique = []
     for t in tokens_data:
@@ -95,6 +134,7 @@ def compute_hal(text, windows_size=2):
                     # else:
                     #     hal.iloc[target_index][window_index] += score
 
+    print("Computed HAL matrix {}x{} for {} tokens".format(tokens_unique_size, tokens_unique_size, tokens_data_size))
     return hal
 
 
@@ -111,17 +151,20 @@ def top_tokens(text, limit=20):
             tokens_map[token] = counter + 1
 
     tokens_sorted = {k: v for k, v in sorted(tokens_map.items(), key=lambda item: item[1], reverse=True)[:limit]}
+    print("Picked {} TOP TOKENS out of {} tokens".format(limit, len(tokens_data)))
     print(tokens_sorted)
     return tokens_sorted
 
 
 def tokens_to_text(tokens):
+    print("Converting {} tokens to text".format(sum(map(len, tokens))))
     return ' '.join([' '.join([str(t) for t in elem]) for elem in tokens])
 
 
 def tokenize(text, language='english'):
     result_tokens = list()
     sentences = sent_tokenize(text)
+    print("Tokenizing and lemmatizing {} sentences from given text".format(len(sentences)))
 
     for sentence in sentences:
         # lemmatize of words by NLTK
@@ -141,15 +184,20 @@ def tokenize(text, language='english'):
         stop_words = set(stopwords.words(language))
         filtered_words = [w for w in tokens if w not in stop_words]
         result_tokens.append(filtered_words)
+
+    print("Finished tokenizing and lemmatizing")
     return result_tokens
 
 
 def tf_idf(docs):
+    print("Computing TF-IDF vectors for {} texts".format(len(docs)))
     vectorizer = TfidfVectorizer()
     vectors = vectorizer.fit_transform(docs)
     feature_names = vectorizer.get_feature_names()
     dense = vectors.todense()
-    return pd.DataFrame(dense.tolist(), columns=feature_names)
+    df = pd.DataFrame(dense.tolist(), columns=feature_names)
+    print("Successfully computed TF-IDF vectors")
+    return df
 
 
 def lemmatize_spacy(sentence):
@@ -168,7 +216,8 @@ def lemmatize_nltk(sentence, language='english'):
 
 
 def read_file(chapter):
-    file = open("book/" + chapter, 'rt')
+    print("Starting {} file reading...".format(chapter))
+    file = open("book/" + chapter, mode='rt', encoding="utf8")
     text = file.read()
     file.close()
     return text
@@ -176,7 +225,7 @@ def read_file(chapter):
 
 def get_chapters():
     chapters = list()
-    for i in range(8):
+    for i in range(1, 8):
         chapters.append("chapter_%d.txt" % i)
 
     return chapters
